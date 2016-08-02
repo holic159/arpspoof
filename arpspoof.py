@@ -115,9 +115,9 @@ def RelayPacket(pkt):
 					frags=fragment(pkt,fragsize=1024)             # 1024 byte fragment
 					for frag in frags:
 						sendp(frag, verbose=False)
-						if cnt > 1:
-							print cnt
-						cnt += 1
+						#if cnt > 1:
+						#	print cnt
+						#cnt += 1
 						#print frag.show()
 
 				elif sourceIP == myInfo.GetMyGateway:
@@ -126,9 +126,9 @@ def RelayPacket(pkt):
 					frags=fragment(pkt,fragsize=1024)             # 1024 byte fragment
 					for frag in frags:
 						sendp(frag, verbose=False)
-						if cntt > 1:
-							print cntt
-						cnt += 1
+						#if cntt > 1:
+						#	print cntt
+						#cnt += 1
 						#print frag.show()
 		except:
 			print pkt.show()
